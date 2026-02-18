@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Broklin</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Roboto:wght@400;500;700&display=swap"
+        rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined" rel="stylesheet">
+    <link rel="stylesheet" href="../static/style.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+</head>
+
+<body>
+    {% if session.get('user_id') %}
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <button class="menu-btn" id="menu-btn"><span class="material-icons-outlined">menu</span></button>
+            </div>
+
+            <button class="new-chat-btn">
+                <span class="material-icons-outlined">add</span>
+                <span>New chat</span>
+            </button>
+
+            <div class="sidebar-section">
+                <div class="section-title">Recent</div>
+                <div class="history-list">
+                    <div class="history-item">
+                        <span class="material-icons-outlined">chat_bubble_outline</span>
+                        <span class="text-truncate">Project brainstorming</span>
+                    </div>
+                    <div class="history-item">
+                        <span class="material-icons-outlined">chat_bubble_outline</span>
+                        <span class="text-truncate">Python code help</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="sidebar-footer">
+                <div class="user-profile">
+                    <div class="avatar">U</div>
+                    <div class="username">{{ email.split('@')[0] if email else 'User' }}</div>
+                </div>
+                <a href="{{ url_for('logout') }}" class="settings-btn" title="Logout">
+                    <span class="material-icons-outlined">logout</span>
+                </a>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Top Bar (Mobile mainly) -->
+            <div class="top-bar">
+                <span class="model-name">Broklin AI</span>
+            </div>
+
+            <div class="chat-container" id="chat-container">
+                <div class="chat-history" id="chat-history">
+                    <!-- Welcome / Empty State -->
+                    <div class="welcome-screen" id="welcome-screen">
+                        <div class="greeting">
+                            <span class="gradient-text">Hello, User</span>
+                            <span class="sub-text">How can I help you today?</span>
+                        </div>
+
+                        <div class="suggestions-grid">
+                            <div class="suggestion-card">
+                                <p>Plan a trip</p>
+                                <span class="material-icons-outlined icon">flight</span>
+                            </div>
+                            <div class="suggestion-card">
+                                <p>Write a thank you note</p>
+                                <span class="material-icons-outlined icon">edit</span>
+                            </div>
+                            <div class="suggestion-card">
+                                <p>Debug python code</p>
+                                <span class="material-icons-outlined icon">code</span>
+                            </div>
+                            <div class="suggestion-card">
+                                <p>Explain quantum physics</p>
+                                <span class="material-icons-outlined icon">school</span>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Messages will be injected here -->
+                </div>
+            </div>
+
+            <!-- Input Area -->
+            <div class="input-area-wrapper">
+                <div class="input-container">
+                    <input type="file" id="image-input" accept="image/*" style="display: none;">
+                    <div id="image-preview-container" class="image-preview-container" style="display: none;">
+                        <img id="image-preview" src="" alt="Preview">
+                        <button id="remove-image" class="remove-image-btn">×</button>
+                    </div>
+                    <button class="icon-btn" id="attach-btn">
+                        <span class="material-icons-outlined">attach_file</span>
+                    </button>
+                    <input type="text" id="user-input" placeholder="Type a message..." autocomplete="off">
+                    <button id="speaker-btn" class="icon-btn" title="Toggle Text-to-Speech" style="margin-right: 8px;">
+                        <span class="material-icons-outlined">volume_off</span>
+                    </button>
+                    <button id="mic-btn" class="mic-btn" title="Use Microphone"><span
+                            class="material-icons-outlined">mic</span></button>
+                    <button id="send-btn" class="send-btn" title="Send message"><span
+                            class="material-icons-outlined">send</span></button>
+                </div>
+                <div class="disclaimer">Gemini may display inaccurate info, including about people, so double-check its
+                    responses.</div>
+            </div>
+        </main>
+    </div>
+    {% else %}
+    <div id="login-form-container">
+        <h1 class="auth-title">Welcome Back</h1>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        {% for category, message in messages %}
+        <div class="alert alert-{{ category }}">{{ message }}</div>
+        {% endfor %}
+        {% endif %}
+        {% endwith %}
+
+        <form class="auth-form" method="POST" action="{{ url_for('login') }}">
+            <div class="form-group">
+                <label for="email">Email</label>
+                <input type="email" id="email" name="email" class="form-input" required placeholder="name@example.com">
+            </div>
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" name="password" class="form-input" required placeholder="••••••••">
+            </div>
+            <button type="submit" class="auth-btn">Sign In</button>
+        </form>
+
+        <div class="auth-link">
+            Don't have an account? <a href="#" onclick="toggleAuth('signup'); return false;">Sign up</a>
+        </div>
+    </div>
+
+    <div id="signup-form-container" style="display: none;">
+        <h1 class="auth-title">Create Account</h1>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        {% for category, message in messages %}
+        <div class="alert alert-{{ category }}">{{ message }}</div>
+        {% endfor %}
+        {% endif %}
+        {% endwith %}
+
+        <form class="auth-form" method="POST" action="{{ url_for('signup') }}">
+            <div class="form-group">
+                <label for="signup-email">Email</label>
+                <input type="email" id="signup-email" name="email" class="form-input" required
+                    placeholder="name@example.com">
+            </div>
+            <div class="form-group">
+                <label for="signup-password">Password</label>
+                <input type="password" id="signup-password" name="password" class="form-input" required
+                    placeholder="Create a password">
+            </div>
+            <div class="form-group">
+                <label for="confirm_password">Confirm Password</label>
+                <input type="password" id="confirm_password" name="confirm_password" class="form-input" required
+                    placeholder="Confirm password">
+            </div>
+            <button type="submit" class="auth-btn">Sign Up</button>
+        </form>
+
+        <div class="auth-link">
+            Already have an account? <a href="#" onclick="toggleAuth('login'); return false;">Log in</a>
+        </div>
+    </div>
+
+    <script>
+        function toggleAuth(mode) {
+            const loginForm = document.getElementById('login-form-container');
+            const signupForm = document.getElementById('signup-form-container');
+
+            if (mode === 'signup') {
+                loginForm.style.display = 'none';
+                signupForm.style.display = 'block';
+            } else {
+                loginForm.style.display = 'block';
+                signupForm.style.display = 'none';
+            }
+        }
+
+        // Check if we should show signup (based on query param or flagging)
+        // For simplicity, we default to login, but if URL has #signup, we toggle
+        if (window.location.hash === '#signup') {
+            toggleAuth('signup');
+        }
+    </script>
+    {% endif %}
+
+    <!-- Voice Overlay -->
+    <div id="voice-indicator" class="voice-indicator hidden">
+        <div class="voice-content">
+            <div class="visualizer">
+                <div class="bar"></div>
+                <div class="bar"></div>
+                <div class="bar"></div>
+                <div class="bar"></div>
+            </div>
+            <span id="status-text">Listening...</span>
+        </div>
+        <button id="close-voice-btn" class="close-btn"><span class="material-icons-outlined">close</span></button>
+    </div>
+
+    <script src="../static/script.js"></script>
+</body>
+
+</html>

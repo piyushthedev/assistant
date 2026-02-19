@@ -1,5 +1,4 @@
-import eventlet
-eventlet.monkey_patch()
+
 
 from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify
 from flask_socketio import SocketIO, emit
@@ -29,7 +28,7 @@ app.config.from_object(Config)
 init_db(app)
 
 # Increase max http buffer size for images (10MB)
-socketio = SocketIO(app, cors_allowed_origins="*", async_mode='eventlet', max_http_buffer_size=1e7)
+socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading', max_http_buffer_size=1e7)
 
 # --- CONFIG ---
 WAKE_WORD = Config.WAKE_WORD
@@ -243,4 +242,4 @@ if __name__ == '__main__':
     with app.app_context():
         db.create_all()
         print("Database initialized.")
-    socketio.run(app, debug=True, host='0.0.0.0', port=5001)
+    socketio.run(app, debug=False, host='0.0.0.0', port=5001)

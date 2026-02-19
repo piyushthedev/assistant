@@ -1,1 +1,1 @@
-web: gunicorn -k eventlet -w 1 app:app
+web: gunicorn -w 1 --threads 8 app:app

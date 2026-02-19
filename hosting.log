@@ -9,7 +9,7 @@ framework.  For more detail see
 https://eventlet.readthedocs.io/en/latest/asyncio/migration.html
 
   import eventlet
-/Users/solu/linux-assistant/ai_service.py:45: LangChainDeprecationWarning: The class `ConversationChain` was deprecated in LangChain 0.2.7 and will be removed in 1.0. Use :meth:`~RunnableWithMessageHistory: https://python.langchain.com/v0.2/api_reference/core/runnables/langchain_core.runnables.history.RunnableWithMessageHistory.html` instead.
+/Users/solu/linux-assistant/ai_service.py:51: LangChainDeprecationWarning: The class `ConversationChain` was deprecated in LangChain 0.2.7 and will be removed in 1.0. Use :meth:`~RunnableWithMessageHistory: https://python.langchain.com/v0.2/api_reference/core/runnables/langchain_core.runnables.history.RunnableWithMessageHistory.html` instead.
   self.conversation = ConversationChain(
  * Restarting with stat
 /Users/solu/linux-assistant/app.py:1: DeprecationWarning: 
@@ -21,16 +21,16 @@ framework.  For more detail see
 https://eventlet.readthedocs.io/en/latest/asyncio/migration.html
 
   import eventlet
-/Users/solu/linux-assistant/ai_service.py:45: LangChainDeprecationWarning: The class `ConversationChain` was deprecated in LangChain 0.2.7 and will be removed in 1.0. Use :meth:`~RunnableWithMessageHistory: https://python.langchain.com/v0.2/api_reference/core/runnables/langchain_core.runnables.history.RunnableWithMessageHistory.html` instead.
+/Users/solu/linux-assistant/ai_service.py:51: LangChainDeprecationWarning: The class `ConversationChain` was deprecated in LangChain 0.2.7 and will be removed in 1.0. Use :meth:`~RunnableWithMessageHistory: https://python.langchain.com/v0.2/api_reference/core/runnables/langchain_core.runnables.history.RunnableWithMessageHistory.html` instead.
   self.conversation = ConversationChain(
  * Debugger is active!
- * Debugger PIN: 107-299-534
-(9032) wsgi starting up on http://0.0.0.0:5001
+ * Debugger PIN: 129-801-984
+(12252) wsgi starting up on http://0.0.0.0:5001
 🌐 Connecting to Public Internet via ngrok...
 ❌ ngrok Error: The ngrok process errored on start: authentication failed: Usage of ngrok requires a verified account and authtoken.\n\nSign up for an account: https://dashboard.ngrok.com/signup\nInstall your authtoken: https://dashboard.ngrok.com/get-started/your-authtoken\r\n\r\nERR_NGROK_4018\r\n.
 Ensure you have an authtoken if required.
-Database initialized.
-/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/multiprocessing/resource_tracker.py:301: UserWarning: resource_tracker: There appear to be 1 leaked semaphore objects to clean up at shutdown: {'/mp-b6esc3nh'}
+/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/multiprocessing/resource_tracker.py:301: UserWarning: resource_tracker: There appear to be 1 leaked semaphore objects to clean up at shutdown: {'/mp-ocy9sz7s'}
   warnings.warn(
+Database initialized.
 
 🛑 Stopping...

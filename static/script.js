@@ -143,6 +143,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 appendMessage('bot', data.text);
             }
         }
+
+        // Handle Audio Output
+        if (data.audio) {
+            const audio = new Audio(data.audio);
+            audio.play().catch(e => console.error("Audio playback error:", e));
+        }
     });
 
     socket.on('user_speech', (data) => {

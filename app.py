@@ -3,8 +3,8 @@ eventlet.monkey_patch()
 
 from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify
 from flask_socketio import SocketIO, emit
-from flask_session import Session
-import speech_recognition as sr
+
+
 from gtts import gTTS
 import os
 import datetime
@@ -25,7 +25,7 @@ from models import db, User, Message, init_db
 app = Flask(__name__)
 app.config.from_object(Config)
 
-Session(app)
+
 init_db(app)
 
 # Increase max http buffer size for images (10MB)
@@ -151,24 +151,26 @@ def get_history():
 
 def speak(text, emit_ui=True):
     print(f"Assistant: {text}")
-    if emit_ui:
-        socketio.emit('status_update', {'status': 'SPEAKING', 'text': text})
-    else:
-        socketio.emit('status_update', {'status': 'SPEAKING'})
     
-    def play_audio():
-        try:
-            tts = gTTS(text=text, lang=SPEAK_LANG, slow=False)
-            tts.save("response.mp3")
-            if os.system("which afplay > /dev/null") == 0:
-                 os.system("afplay response.mp3")
-            else:
-                 os.system("mpg123 -q response.mp3")
-        except:
-            pass
-        socketio.emit('status_update', {'status': 'IDLE'})
+    audio_data = None
+    try:
+        tts = gTTS(text=text, lang=SPEAK_LANG, slow=False)
+        audio_fp = io.BytesIO()
+        tts.write_to_fp(audio_fp)
+        audio_fp.seek(0)
+        audio_base64 = base64.b64encode(audio_fp.read()).decode('utf-8')
+        audio_data = f"data:audio/mp3;base64,{audio_base64}"
+    except Exception as e:
+        print(f"TTS Error: {e}")
 
-    threading.Thread(target=play_audio).start()
+    payload = {'status': 'SPEAKING'}
+    if emit_ui:
+        payload['text'] = text
+    if audio_data:
+        payload['audio'] = audio_data
+        
+    socketio.emit('status_update', payload)
+
 
 def execute_command(command, image_data=None, user_id=None, reply_audio=False):
     if not command and not image_data:

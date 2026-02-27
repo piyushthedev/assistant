@@ -58,7 +58,7 @@ msgpack==1.1.2
 msgspec==0.20.0
 pillow==12.1.1
 proto-plus==1.27.1
-protobuf==5.29.6
+protobuf==4.25.3
 pyasn1==0.6.2
 pyasn1_modules==0.4.2
 

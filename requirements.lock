@@ -19,9 +19,7 @@ anyio==4.12.1
 attrs==25.4.0
     # via aiohttp
 beautifulsoup4==4.14.3
-    # via
-    #   -r requirements.txt
-    #   wikipedia
+    # via -r requirements.txt
 bidict==0.23.1
     # via -r requirements.txt
 blinker==1.9.0
@@ -347,7 +345,6 @@ requests==2.32.5
     #   langchain-community
     #   langsmith
     #   requests-toolbelt
-    #   wikipedia
 requests-toolbelt==1.0.0
     # via langsmith
 rich==14.3.2
@@ -402,7 +399,5 @@ werkzeug==3.1.5
     # via
     #   -r requirements.txt
     #   flask
-wikipedia==1.4.0
-    # via -r requirements.txt
 yarl==1.22.0
     # via aiohttp

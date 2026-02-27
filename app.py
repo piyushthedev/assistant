@@ -8,7 +8,6 @@ import os
 import datetime
 import time
 import webbrowser
-import wikipedia
 import requests
 import threading
 import ai_service

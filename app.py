@@ -1,7 +1,6 @@
 
 
 from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify
-from flask_socketio import SocketIO, emit
 
 
 from gtts import gTTS
@@ -27,8 +26,7 @@ app.config.from_object(Config)
 
 init_db(app)
 
-# Increase max http buffer size for images (10MB)
-socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading', max_http_buffer_size=1e7)
+# Remove socketio initialization
 
 # --- CONFIG ---
 WAKE_WORD = Config.WAKE_WORD
@@ -146,100 +144,100 @@ def get_history():
         print(f"History Error: {e}")
         return jsonify([])
 
-# --- SOCKET ---
+# --- API ENDPOINT ---
 
-def speak(text, emit_ui=True):
-    print(f"Assistant: {text}")
-    
-    audio_data = None
+def speak_audio(text):
+    """Generates base64 MP3 audio from text using gTTS."""
     try:
         tts = gTTS(text=text, lang=SPEAK_LANG, slow=False)
         audio_fp = io.BytesIO()
         tts.write_to_fp(audio_fp)
         audio_fp.seek(0)
         audio_base64 = base64.b64encode(audio_fp.read()).decode('utf-8')
-        audio_data = f"data:audio/mp3;base64,{audio_base64}"
+        return f"data:audio/mp3;base64,{audio_base64}"
     except Exception as e:
         print(f"TTS Error: {e}")
+        return None
 
-    payload = {'status': 'SPEAKING'}
-    if emit_ui:
-        payload['text'] = text
-    if audio_data:
-        payload['audio'] = audio_data
+@app.route('/api/chat', methods=['POST'])
+def chat():
+    """Handles chat messages via HTTP POST instead of WebSockets for Vercel compatibility."""
+    # To handle database context properly in Vercel
+    if not hasattr(app, 'db_initialized'):
+        with app.app_context():
+            db.create_all()
+            app.db_initialized = True
+            
+    data = request.json
+    if not data:
+        return jsonify({"error": "No data provided"}), 400
         
-    socketio.emit('status_update', payload)
-
-
-def execute_command(command, image_data=None, user_id=None, reply_audio=False):
+    command = data.get('text', '')
+    image_data = data.get('image')
+    source = data.get('source', 'text')
+    tts_enabled = data.get('tts_enabled', False)
+    user_id = session.get('user_id')
+    
     if not command and not image_data:
-        return
+        return jsonify({"error": "Empty message"}), 400
 
     # Save User Msg
     if user_id:
         save_message_to_db(user_id, 'user', command, image_data)
 
-    socketio.emit('status_update', {'status': 'THINKING', 'text': command})
+    reply_audio = (source == 'voice') or tts_enabled
+    response_text = ""
+    audio_data = None
     
     # Check local commands
-    if not image_data:
+    if not image_data and command:
         command_lower = command.lower()
         if 'time' in command_lower:
             current_time = datetime.datetime.now().strftime('%I:%M %p')
             response_text = f"Abhi samay hai {current_time}"
             
-            # Emit text
-            socketio.emit('status_update', {'status': 'SPEAKING', 'text': response_text})
-            
-            if reply_audio:
-                speak(response_text, emit_ui=False)
-            else:
-                socketio.emit('status_update', {'status': 'IDLE'})
+            if user_id: 
+                save_message_to_db(user_id, 'bot', response_text)
                 
-            if user_id: save_message_to_db(user_id, 'bot', response_text)
-            return
+            if reply_audio:
+                audio_data = speak_audio(response_text)
+                
+            return jsonify({
+                "status": "success",
+                "text": response_text,
+                "audio": audio_data
+            })
     
     # Gemini (via AI Service)
     image_obj = process_image_data(image_data)
     answer = ai_service.get_response(command, image=image_obj)
     
     if answer:
-        if user_id: save_message_to_db(user_id, 'bot', answer)
-        formatted = answer.replace("*", "")
-        socketio.emit('status_update', {'status': 'SPEAKING', 'text': answer})
-        socketio.sleep(0)
-        
+        formatted_answer = answer.replace("*", "")
+        if user_id: 
+            save_message_to_db(user_id, 'bot', answer)
+            
         if reply_audio:
-            speak(formatted, emit_ui=False)
-        else:
-            # If not speaking, we still validly 'spoke' via text, so set IDLE
-            socketio.emit('status_update', {'status': 'IDLE'})
+            audio_data = speak_audio(formatted_answer)
+            
+        return jsonify({
+            "status": "success",
+            "text": answer,
+            "audio": audio_data
+        })
     else:
+        response_text = "Maaf kijiye, main samajh nahi paya."
         if reply_audio:
-            speak("Maaf kijiye.")
-        else:
-             socketio.emit('status_update', {'status': 'IDLE'})
-
-@socketio.on('connect')
-def handle_connect():
-    print('Client connected')
-
-@socketio.on('text_input')
-def handle_text_input(data):
-    print(f"DEBUG: Received text_input: {data}")
-    text = data.get('text', '')
-    image = data.get('image')
-    source = data.get('source', 'text') # Default to text
-    tts_enabled = data.get('tts_enabled', False)
-    user_id = session.get('user_id') 
-    
-    if text or image:
-        # Reply with audio if source was voice OR tts toggle is on
-        reply_audio = (source == 'voice') or tts_enabled
-        execute_command(text, image, user_id, reply_audio=reply_audio)
+            audio_data = speak_audio(response_text)
+            
+        return jsonify({
+            "status": "success",
+            "text": response_text,
+            "audio": audio_data
+        })
 
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()
         print("Database initialized.")
-    socketio.run(app, debug=False, host='0.0.0.0', port=5001)
+    app.run(debug=False, host='0.0.0.0', port=5001)

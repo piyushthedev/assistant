@@ -1,7 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // Connect to current host
-    const socket = io();
-
+    // Define API endpoint logic
+    const apiEndpoint = '/api/chat';
     // DOM Elements
     const chatContainer = document.querySelector('.chat-container');
     const chatHistory = document.getElementById('chat-history');
@@ -92,11 +91,8 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // --- Socket Events ---
-    socket.on('connect', () => {
-        console.log("Connected to Assistant Server");
-        loadHistory();
-    });
+    // --- App Loading --- //
+    loadHistory();
 
     function loadHistory() {
         console.log("Loading history...");
@@ -104,10 +100,7 @@ document.addEventListener('DOMContentLoaded', () => {
             .then(res => res.json())
             .then(data => {
                 if (data.length > 0) {
-                    // Clear previous
                     if (chatHistory) chatHistory.innerHTML = '';
-                    // Determine user
-                    const welcomeScreen = document.getElementById('welcome-screen');
                     if (welcomeScreen) welcomeScreen.style.display = 'none';
 
                     data.forEach(msg => {
@@ -117,45 +110,6 @@ document.addEventListener('DOMContentLoaded', () => {
             })
             .catch(e => console.error("History load failed", e));
     }
-
-    socket.on('status_update', (data) => {
-        console.log("Status:", data);
-
-        // Handle Voice Indicator
-        if (voiceIndicator) {
-            // Only show overlay for active listening/processing
-            if (data.status === 'LISTENING' || data.status === 'PROCESSING') {
-                voiceIndicator.classList.remove('hidden');
-                if (voiceStatus) {
-                    if (data.status === 'LISTENING') voiceStatus.innerText = "Listening...";
-                    else if (data.status === 'PROCESSING') voiceStatus.innerText = "Thinking...";
-                }
-            } else {
-                // Hide immediately for SPEAKING or IDLE
-                voiceIndicator.classList.add('hidden');
-            }
-        }
-
-        // Handle Text Output (Bot Answer)
-        if (data.text) {
-            // If status is SPEAKING, it means we have a final answer
-            if (data.status === 'SPEAKING') {
-                appendMessage('bot', data.text);
-            }
-        }
-
-        // Handle Audio Output
-        if (data.audio) {
-            const audio = new Audio(data.audio);
-            audio.play().catch(e => console.error("Audio playback error:", e));
-        }
-    });
-
-    socket.on('user_speech', (data) => {
-        if (data.text) {
-            appendMessage('user', data.text);
-        }
-    });
 
     // --- Image Handling ---
     if (attachBtn && imageInput) {
@@ -186,7 +140,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- Sending Messages ---
-    function sendMessage(source = 'text') {
+    async function sendMessage(source = 'text') {
         if (!textInput) return;
 
         const text = textInput.value.trim();
@@ -199,19 +153,51 @@ document.addEventListener('DOMContentLoaded', () => {
         // Add User Message to UI
         appendMessage('user', text, currentImageBase64);
 
-        // Send to Backend
-        socket.emit('text_input', {
+        const requestData = {
             text: text,
             image: currentImageBase64,
-            source: source, // 'text' or 'voice'
+            source: source,
             tts_enabled: isTTSEnabled
-        });
+        };
 
         // Clear Input
         textInput.value = '';
         currentImageBase64 = null;
         if (imageInput) imageInput.value = '';
         if (imagePreviewContainer) imagePreviewContainer.style.display = 'none';
+
+        // Show thinking indicator
+        if (voiceIndicator) {
+            voiceIndicator.classList.remove('hidden');
+            if (voiceStatus) voiceStatus.innerText = "Thinking...";
+        }
+
+        try {
+            const res = await fetch(apiEndpoint, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(requestData)
+            });
+            const data = await res.json();
+
+            if (voiceIndicator) voiceIndicator.classList.add('hidden');
+
+            if (data.status === 'success') {
+                if (data.text) {
+                    appendMessage('bot', data.text);
+                }
+                if (data.audio) {
+                    const audio = new Audio(data.audio);
+                    audio.play().catch(e => console.error("Audio playback error:", e));
+                }
+            } else {
+                appendMessage('bot', "Server returned an error.");
+            }
+        } catch (error) {
+            console.error("Error sending message:", error);
+            if (voiceIndicator) voiceIndicator.classList.add('hidden');
+            appendMessage('bot', "Sorry, a network error occurred.");
+        }
     }
 
     if (sendBtn) {

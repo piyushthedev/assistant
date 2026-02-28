@@ -20,19 +20,6 @@ if not GEMINI_API_KEY or not PINECONE_API_KEY:
     print("Error: GEMINI_API_KEY and PINECONE_API_KEY must be set in your .env file.")
     exit(1)
 
-# List of Wikipedia pages about India to scrape
-URLS = [
-    "https://en.wikipedia.org/wiki/India",
-    "https://en.wikipedia.org/wiki/History_of_India",
-    "https://en.wikipedia.org/wiki/Geography_of_India",
-    "https://en.wikipedia.org/wiki/Economy_of_India",
-    "https://en.wikipedia.org/wiki/Culture_of_India",
-    "https://en.wikipedia.org/wiki/Politics_of_India",
-    "https://en.wikipedia.org/wiki/Demographics_of_India",
-    "https://en.wikipedia.org/wiki/Foreign_relations_of_India",
-    "https://en.wikipedia.org/wiki/States_and_union_territories_of_India"
-]
-
 def scrape_wikipedia_text(url):
     print(f"Scraping: {url}")
     headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'}
@@ -54,8 +41,11 @@ def scrape_wikipedia_text(url):
 
 def main():
     print("Starting data ingestion process...")
+    
+    # Scrape Wikipedia pages
     all_text = ""
-    for url in URLS:
+    URLs = ["https://en.wikipedia.org/wiki/India"]
+    for url in URLs:
         text = scrape_wikipedia_text(url)
         all_text += text + "\n\n"
         
@@ -76,19 +66,38 @@ def main():
 
     print(f"Created {len(chunks)} chunks.")
     
-    # Initialize embeddings
     print("Initializing Google Gemini Embeddings...")
-    embeddings = GoogleGenerativeAIEmbeddings(model="text-embedding-004")
+    embeddings = GoogleGenerativeAIEmbeddings(model="models/gemini-embedding-001")
     
     # Upload to Pinecone
     print(f"Uploading vectors to Pinecone index: '{PINECONE_INDEX_NAME}'...")
-    PineconeVectorStore.from_documents(
-        chunks, 
-        embeddings, 
-        index_name=PINECONE_INDEX_NAME
-    )
-    
-    print("Upload complete! The custom dataset is ready for the RAG pipeline.")
+    from time import sleep
+
+    # Batch chunks to respect Gemini free tier limits (100 req/min)
+    batch_size = 50
+    for i in range(0, len(chunks), batch_size):
+        batch = chunks[i:i + batch_size]
+        print(f"Uploading batch {i // batch_size + 1} of {len(chunks) // batch_size + 1}...")
+        try:
+            PineconeVectorStore.from_documents(
+                batch,
+                embeddings,
+                index_name=PINECONE_INDEX_NAME
+            )
+            # Sleep to avoid rate limits
+            if i + batch_size < len(chunks):
+                print("Waiting 15 seconds to respect API rate limits...")
+                sleep(15)
+        except Exception as e:
+            print(f"Error during upload: {e}")
+            print("Waiting 30 seconds and retrying this batch...")
+            sleep(30)
+            PineconeVectorStore.from_documents(
+                batch,
+                embeddings,
+                index_name=PINECONE_INDEX_NAME
+            )
+    print("Ingestion complete! The custom dataset is ready for the RAG pipeline.")
 
 if __name__ == "__main__":
     main()

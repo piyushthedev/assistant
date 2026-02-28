@@ -11,7 +11,7 @@ warnings.filterwarnings("ignore", category=UserWarning)
 GEMINI_API_KEY = Config.GEMINI_API_KEY
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY") 
 PINECONE_API_KEY = os.environ.get("PINECONE_API_KEY")
-PINECONE_INDEX_NAME = "quickstart"
+PINECONE_INDEX_NAME = "india-knowledge"
 
 from langchain_google_genai import ChatGoogleGenerativeAI, GoogleGenerativeAIEmbeddings
 from langchain.chains import ConversationChain
@@ -41,7 +41,7 @@ class AIService:
                 if PINECONE_API_KEY and PineconeVectorStore:
                     print("Initializing Pinecone Vector Store...")
                     embeddings = GoogleGenerativeAIEmbeddings(
-                        model="models/text-embedding-004", 
+                        model="text-embedding-004", 
                         google_api_key=GEMINI_API_KEY
                     )
                     self.vectorstore = PineconeVectorStore(

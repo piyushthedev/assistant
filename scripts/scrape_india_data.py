@@ -14,7 +14,7 @@ load_dotenv()
 # Ensure keys are present
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 PINECONE_API_KEY = os.environ.get("PINECONE_API_KEY")
-PINECONE_INDEX_NAME = "quickstart"
+PINECONE_INDEX_NAME = "india-knowledge"
 
 if not GEMINI_API_KEY or not PINECONE_API_KEY:
     print("Error: GEMINI_API_KEY and PINECONE_API_KEY must be set in your .env file.")
@@ -78,7 +78,7 @@ def main():
     
     # Initialize embeddings
     print("Initializing Google Gemini Embeddings...")
-    embeddings = GoogleGenerativeAIEmbeddings(model="models/text-embedding-004")
+    embeddings = GoogleGenerativeAIEmbeddings(model="text-embedding-004")
     
     # Upload to Pinecone
     print(f"Uploading vectors to Pinecone index: '{PINECONE_INDEX_NAME}'...")

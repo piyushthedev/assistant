@@ -37,19 +37,7 @@ class AIService:
                 genai.configure(api_key=GEMINI_API_KEY)
                 self.gemini_model = genai.GenerativeModel('gemini-2.0-flash-lite')
                 
-                # Setup Vector Store for RAG if Pinecone is configured
-                if PINECONE_API_KEY and PineconeVectorStore:
-                    print("Initializing Pinecone Vector Store...")
-                    embeddings = GoogleGenerativeAIEmbeddings(
-                        model="text-embedding-004", 
-                        google_api_key=GEMINI_API_KEY
-                    )
-                    self.vectorstore = PineconeVectorStore(
-                        index_name=PINECONE_INDEX_NAME, 
-                        embedding=embeddings, 
-                        pinecone_api_key=PINECONE_API_KEY
-                    )
-
+                # Pinecone Vector Store will be lazy-loaded in ask_gemini()
                 # LangChain Setup for Text (Memory)
                 self.llm = ChatGoogleGenerativeAI(
                     model="gemini-2.0-flash-lite", 
@@ -93,6 +81,19 @@ Broklin:"""
                 response = self.gemini_model.generate_content([prompt, image])
                 return response.text.replace("*", "")
             else:
+                # Lazy Load Vector Store for RAG if Pinecone is configured
+                if self.vectorstore is None and PINECONE_API_KEY and PineconeVectorStore:
+                    print("Lazy Initializing Pinecone Vector Store...")
+                    embeddings = GoogleGenerativeAIEmbeddings(
+                        model="models/gemini-embedding-001", 
+                        google_api_key=GEMINI_API_KEY
+                    )
+                    self.vectorstore = PineconeVectorStore(
+                        index_name=PINECONE_INDEX_NAME, 
+                        embedding=embeddings, 
+                        pinecone_api_key=PINECONE_API_KEY
+                    )
+
                 # RAG: Retrieve context from Vector DB if available
                 augmented_prompt = prompt
                 if self.vectorstore:

@@ -7,7 +7,7 @@ class Config:
     """Base configuration."""
     SECRET_KEY = os.environ.get('SECRET_KEY') or 'gemini-assistant-secret-key'
     SESSION_TYPE = None # Use default client-side sessions for Vercel
-    if os.environ.get('VERCEL_ENV'):
+    if os.environ.get('VERCEL_ENV') or os.environ.get('VERCEL'):
         SQLALCHEMY_DATABASE_URI = 'sqlite:////tmp/database.db'
     else:
         SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or 'sqlite:///database.db'

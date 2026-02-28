@@ -14,7 +14,7 @@ load_dotenv()
 # Ensure keys are present
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 PINECONE_API_KEY = os.environ.get("PINECONE_API_KEY")
-PINECONE_INDEX_NAME = "india-knowledge"
+PINECONE_INDEX_NAME = "quickstart"
 
 if not GEMINI_API_KEY or not PINECONE_API_KEY:
     print("Error: GEMINI_API_KEY and PINECONE_API_KEY must be set in your .env file.")

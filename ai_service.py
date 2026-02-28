@@ -11,7 +11,7 @@ warnings.filterwarnings("ignore", category=UserWarning)
 GEMINI_API_KEY = Config.GEMINI_API_KEY
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY") 
 PINECONE_API_KEY = os.environ.get("PINECONE_API_KEY")
-PINECONE_INDEX_NAME = "india-knowledge"
+PINECONE_INDEX_NAME = "quickstart"
 
 from langchain_google_genai import ChatGoogleGenerativeAI, GoogleGenerativeAIEmbeddings
 from langchain.chains import ConversationChain

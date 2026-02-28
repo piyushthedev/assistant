@@ -82,3 +82,4 @@ Werkzeug==3.1.5
 langchain-pinecone
 pinecone
 
+google-generativeai

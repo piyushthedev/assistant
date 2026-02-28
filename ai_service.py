@@ -65,8 +65,13 @@ Broklin:"""
                 )
                 
                 self.gemini_configured = True
+                self.gemini_init_error = None
             except Exception as e:
-                print(f"Gemini Config Error: {e}")
+                import traceback
+                self.gemini_init_error = f"Init crashed: {type(e).__name__}: {str(e)}\n{traceback.format_exc()}"
+                print(f"Gemini Config Error: {self.gemini_init_error}")
+        else:
+            self.gemini_init_error = "GEMINI_API_KEY environment variable is empty or not loaded."
 
         # Setup OpenAI (Placeholder)
         if OPENAI_API_KEY and OPENAI_API_KEY != "YOUR-OPENAI-KEY-HERE":
@@ -74,7 +79,7 @@ Broklin:"""
 
     def ask_gemini(self, prompt, image=None):
         if not self.gemini_configured:
-            return "Gemini API key is missing."
+            return f"Gemini configuration failed: {getattr(self, 'gemini_init_error', 'Unknown Error')}"
         try:
             if image:
                 # Use direct API for images as LangChain memory + images is complex

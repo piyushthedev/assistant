@@ -2,7 +2,7 @@ import google.generativeai as genai
 import os
 
 # API Key provided by user
-GENAI_API_KEY = "AIzaSyAuBUzpaapW8zvymcTRWBhC_6P1ytzK8VA"
+GENAI_API_KEY = "REPLACE_WITH_YOUR_KEY"
 
 print(f"Configuring Gemini with key: {GENAI_API_KEY[:5]}...")
 

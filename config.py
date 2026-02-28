@@ -17,7 +17,7 @@ class Config:
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     
     # Gemini API Key
-    GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY') or "AIzaSyCwtz-HaPIeLVjHqGC5Y7IFtzgvTYG-lEg"
+    GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY')
     
     # Voice Settings
     WAKE_WORD = "broklin"

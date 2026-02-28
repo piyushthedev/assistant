@@ -36,6 +36,7 @@ certifi==2026.1.4
     #   -r requirements.txt
     #   httpcore
     #   httpx
+    #   pinecone
     #   pinecone-client
     #   requests
 cffi==2.0.0
@@ -262,22 +263,28 @@ numpy==1.26.4
     #   langchain-community
     #   langchain-pinecone
 orjson==3.11.7
-    # via langsmith
+    # via
+    #   langsmith
+    #   pinecone
 packaging==24.2
     # via
     #   gunicorn
     #   langchain-core
     #   marshmallow
+    #   pinecone-plugin-assistant
 pillow==12.1.1
     # via -r requirements.txt
+pinecone==8.1.0
+    # via -r requirements.txt
 pinecone-client==5.0.1
-    # via
-    #   -r requirements.txt
-    #   langchain-pinecone
+    # via langchain-pinecone
+pinecone-plugin-assistant==3.0.2
+    # via pinecone
 pinecone-plugin-inference==1.1.0
     # via pinecone-client
 pinecone-plugin-interface==0.0.7
     # via
+    #   pinecone
     #   pinecone-client
     #   pinecone-plugin-inference
 propcache==0.4.1
@@ -337,6 +344,8 @@ pyparsing==3.3.2
     # via
     #   -r requirements.txt
     #   httplib2
+python-dateutil==2.9.0.post0
+    # via pinecone
 python-dotenv==1.0.1
     # via
     #   -r requirements.txt
@@ -356,11 +365,14 @@ requests==2.32.5
     #   langchain
     #   langchain-community
     #   langsmith
+    #   pinecone-plugin-assistant
     #   requests-toolbelt
 requests-toolbelt==1.0.0
     # via langsmith
 rich==14.3.2
     # via -r requirements.txt
+six==1.17.0
+    # via python-dateutil
 soupsieve==2.8.3
     # via
     #   -r requirements.txt
@@ -388,6 +400,7 @@ typing-extensions==4.15.0
     #   google-generativeai
     #   grpcio
     #   langchain-core
+    #   pinecone
     #   pinecone-client
     #   pydantic
     #   pydantic-core
@@ -408,6 +421,7 @@ uritemplate==4.2.0
 urllib3==2.6.3
     # via
     #   -r requirements.txt
+    #   pinecone
     #   pinecone-client
     #   requests
 werkzeug==3.1.5

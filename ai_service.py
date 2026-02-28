@@ -8,9 +8,6 @@ warnings.filterwarnings("ignore", category=DeprecationWarning)
 warnings.filterwarnings("ignore", category=UserWarning)
 
 # --- CONFIGURE KEYS HERE ---
-GEMINI_API_KEY = Config.GEMINI_API_KEY
-OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY") 
-PINECONE_API_KEY = os.environ.get("PINECONE_API_KEY")
 PINECONE_INDEX_NAME = "india-knowledge"
 
 from langchain_google_genai import ChatGoogleGenerativeAI, GoogleGenerativeAIEmbeddings
@@ -25,23 +22,28 @@ except ImportError:
 
 class AIService:
     def __init__(self):
+        # Fetch keys dynamically so Vercel dotenv injection happens first
+        self._gemini_key = Config.GEMINI_API_KEY or os.environ.get('GEMINI_API_KEY')
+        self._openai_key = os.environ.get("OPENAI_API_KEY") 
+        self._pinecone_key = os.environ.get("PINECONE_API_KEY")
+        
         self.gemini_configured = False
         self.openai_configured = False
         self.conversation = None
         self.vectorstore = None
         
         # Setup Gemini
-        if GEMINI_API_KEY:
+        if self._gemini_key:
             try:
                 # Direct API for Images (Legacy/backup)
-                genai.configure(api_key=GEMINI_API_KEY)
+                genai.configure(api_key=self._gemini_key)
                 self.gemini_model = genai.GenerativeModel('gemini-2.0-flash-lite')
                 
                 # Pinecone Vector Store will be lazy-loaded in ask_gemini()
                 # LangChain Setup for Text (Memory)
                 self.llm = ChatGoogleGenerativeAI(
                     model="gemini-2.0-flash-lite", 
-                    google_api_key=GEMINI_API_KEY,
+                    google_api_key=self._gemini_key,
                     temperature=0.7,
                     convert_system_message_to_human=True 
                 )
@@ -87,16 +89,16 @@ Broklin:"""
                 return response.text.replace("*", "")
             else:
                 # Lazy Load Vector Store for RAG if Pinecone is configured
-                if self.vectorstore is None and PINECONE_API_KEY and PineconeVectorStore:
+                if self.vectorstore is None and self._pinecone_key and PineconeVectorStore:
                     print("Lazy Initializing Pinecone Vector Store...")
                     embeddings = GoogleGenerativeAIEmbeddings(
                         model="models/gemini-embedding-001", 
-                        google_api_key=GEMINI_API_KEY
+                        google_api_key=self._gemini_key
                     )
                     self.vectorstore = PineconeVectorStore(
                         index_name=PINECONE_INDEX_NAME, 
                         embedding=embeddings, 
-                        pinecone_api_key=PINECONE_API_KEY
+                        pinecone_api_key=self._pinecone_key
                     )
 
                 # RAG: Retrieve context from Vector DB if available

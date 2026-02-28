@@ -10,17 +10,25 @@ warnings.filterwarnings("ignore", category=UserWarning)
 # --- CONFIGURE KEYS HERE ---
 GEMINI_API_KEY = Config.GEMINI_API_KEY
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY") 
+PINECONE_API_KEY = os.environ.get("PINECONE_API_KEY")
+PINECONE_INDEX_NAME = "india-knowledge"
 
-from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_google_genai import ChatGoogleGenerativeAI, GoogleGenerativeAIEmbeddings
 from langchain.chains import ConversationChain
 from langchain.memory import ConversationBufferMemory
 from langchain.prompts import PromptTemplate
+
+try:
+    from langchain_pinecone import PineconeVectorStore
+except ImportError:
+    PineconeVectorStore = None
 
 class AIService:
     def __init__(self):
         self.gemini_configured = False
         self.openai_configured = False
         self.conversation = None
+        self.vectorstore = None
         
         # Setup Gemini
         if GEMINI_API_KEY:
@@ -29,6 +37,19 @@ class AIService:
                 genai.configure(api_key=GEMINI_API_KEY)
                 self.gemini_model = genai.GenerativeModel('gemini-2.0-flash-lite')
                 
+                # Setup Vector Store for RAG if Pinecone is configured
+                if PINECONE_API_KEY and PineconeVectorStore:
+                    print("Initializing Pinecone Vector Store...")
+                    embeddings = GoogleGenerativeAIEmbeddings(
+                        model="models/text-embedding-004", 
+                        google_api_key=GEMINI_API_KEY
+                    )
+                    self.vectorstore = PineconeVectorStore(
+                        index_name=PINECONE_INDEX_NAME, 
+                        embedding=embeddings, 
+                        pinecone_api_key=PINECONE_API_KEY
+                    )
+
                 # LangChain Setup for Text (Memory)
                 self.llm = ChatGoogleGenerativeAI(
                     model="gemini-2.0-flash-lite", 
@@ -38,7 +59,7 @@ class AIService:
                 )
                 
                 # System Prompt Template
-                template = """You are a helpful voice assistant named Broklin. Answer concisely (max 2 sentences) for speech output.
+                template = """You are a helpful voice assistant named Broklin. Answer concisely (max 2 sentences) for speech output. If background info is provided, prioritize answering using that background info.
 
 Current conversation:
 {history}
@@ -72,8 +93,16 @@ Broklin:"""
                 response = self.gemini_model.generate_content([prompt, image])
                 return response.text.replace("*", "")
             else:
+                # RAG: Retrieve context from Vector DB if available
+                augmented_prompt = prompt
+                if self.vectorstore:
+                    docs = self.vectorstore.similarity_search(prompt, k=3)
+                    if docs:
+                        context = "\n\n".join([doc.page_content for doc in docs])
+                        augmented_prompt = f"Background Information (Use this to answer the user if relevant):\n{context}\n\nUser Question: {prompt}"
+                
                 # Use LangChain for text (Preserves Memory)
-                response = self.conversation.predict(input=prompt)
+                response = self.conversation.predict(input=augmented_prompt)
                 return response.replace("*", "")
         except Exception as e:
             return f"Gemini Error: {e}"

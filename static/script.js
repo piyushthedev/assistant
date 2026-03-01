@@ -55,6 +55,18 @@ document.addEventListener('DOMContentLoaded', () => {
             console.log('Voice recognition ended');
             // Don't auto-hide immediately, allow status update to handle it
         };
+
+        if (micBtn) {
+            micBtn.addEventListener('click', () => {
+                if (recognition) {
+                    try {
+                        recognition.start();
+                    } catch (e) {
+                        console.error('Recognition already started or error', e);
+                    }
+                }
+            });
+        }
     } else {
         console.log("Web Speech API not supported");
     }

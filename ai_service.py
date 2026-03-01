@@ -27,6 +27,11 @@ class AIService:
         self._openai_key = os.environ.get("OPENAI_API_KEY") 
         self._pinecone_key = os.environ.get("PINECONE_API_KEY")
         
+        # Force the OS Environment to use the correct key so Langchain Embeddings don't fall back to old cached keys
+        if self._gemini_key:
+            os.environ['GOOGLE_API_KEY'] = self._gemini_key
+            os.environ['GEMINI_API_KEY'] = self._gemini_key
+        
         self.gemini_configured = False
         self.openai_configured = False
         self.conversation = None
@@ -37,13 +42,13 @@ class AIService:
             try:
                 # Direct API for Images (Legacy/backup)
                 genai.configure(api_key=self._gemini_key)
-                self.gemini_model = genai.GenerativeModel('gemini-2.0-flash-lite')
+                self.gemini_model = genai.GenerativeModel('gemini-2.5-flash')
                 
                 # Pinecone Vector Store will be lazy-loaded in ask_gemini()
                 # LangChain Setup for Text (Memory)
                 self.llm = ChatGoogleGenerativeAI(
-                    model="gemini-2.0-flash-lite", 
-                    google_api_key=self._gemini_key,
+                    model="gemini-2.5-flash", 
+                    api_key=self._gemini_key,
                     temperature=0.7,
                     convert_system_message_to_human=True 
                 )
@@ -76,7 +81,7 @@ Broklin:"""
             self.gemini_init_error = "GEMINI_API_KEY environment variable is empty or not loaded."
 
         # Setup OpenAI (Placeholder)
-        if OPENAI_API_KEY and OPENAI_API_KEY != "YOUR-OPENAI-KEY-HERE":
+        if self._openai_key and self._openai_key != "YOUR-OPENAI-KEY-HERE":
             self.openai_configured = True
 
     def ask_gemini(self, prompt, image=None):
@@ -93,7 +98,7 @@ Broklin:"""
                     print("Lazy Initializing Pinecone Vector Store...")
                     embeddings = GoogleGenerativeAIEmbeddings(
                         model="models/gemini-embedding-001", 
-                        google_api_key=self._gemini_key
+                        api_key=self._gemini_key
                     )
                     self.vectorstore = PineconeVectorStore(
                         index_name=PINECONE_INDEX_NAME, 

@@ -100,23 +100,19 @@ Current conversation:
         
         tools = []
         
-        # 1. Google Search Tool
-        if self._google_search_api_key and self._google_cse_id:
-            try:
-                from langchain_community.utilities import GoogleSearchAPIWrapper
-                search = GoogleSearchAPIWrapper(
-                    google_api_key=self._google_search_api_key, 
-                    google_cse_id=self._google_cse_id
+        # 1. Free Web Search Tool (DuckDuckGo)
+        try:
+            from langchain_community.tools.ddg_search.tool import DuckDuckGoSearchRun
+            search = DuckDuckGoSearchRun()
+            tools.append(
+                Tool(
+                    name="web_search",
+                    description="Search the internet for recent results, live news, current events, sports scores, and real-time weather.",
+                    func=search.run,
                 )
-                tools.append(
-                    Tool(
-                        name="google_search",
-                        description="Search Google for recent results, live news, current events, and weather.",
-                        func=search.run,
-                    )
-                )
-            except Exception as e:
-                print(f"Failed to init Google Search Tool: {e}")
+            )
+        except Exception as e:
+            print(f"Failed to init Web Search Tool: {e}")
 
         # Create Agent
         agent = create_tool_calling_agent(self.llm, tools, self.prompt)

@@ -50,6 +50,7 @@ class AIService:
                     model="gemini-2.5-flash", 
                     api_key=self._gemini_key,
                     temperature=0.7,
+                    max_output_tokens=8192,
                     convert_system_message_to_human=True 
                 )
                 

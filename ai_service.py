@@ -54,7 +54,7 @@ class AIService:
                 )
                 
                 # System Prompt Template
-                template = """You are a helpful voice assistant named Broklin. Answer concisely (max 2 sentences) for speech output. If background info is provided, prioritize answering using that background info.
+                template = """You are a highly capable AI assistant named Broklin. Provide comprehensive, detailed, and completely expansive answers to the user's questions. Do not restrict your length. If background info is provided, prioritize answering using that background info in detail.
 
 Current conversation:
 {history}

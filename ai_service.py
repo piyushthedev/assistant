@@ -26,6 +26,8 @@ class AIService:
         self._gemini_key = Config.GEMINI_API_KEY or os.environ.get('GEMINI_API_KEY')
         self._openai_key = os.environ.get("OPENAI_API_KEY") 
         self._pinecone_key = os.environ.get("PINECONE_API_KEY")
+        self._google_search_api_key = os.environ.get("GOOGLE_SEARCH_API_KEY")
+        self._google_cse_id = os.environ.get("GOOGLE_CSE_ID")
         
         # Force the OS Environment to use the correct key so Langchain Embeddings don't fall back to old cached keys
         if self._gemini_key:
@@ -54,23 +56,30 @@ class AIService:
                     convert_system_message_to_human=True 
                 )
                 
-                # System Prompt Template
-                template = """You are a highly capable AI assistant named Broklin. Provide comprehensive, detailed, and completely expansive answers to the user's questions. Do not restrict your length. If background info is provided, prioritize answering using that background info in detail.
+                # System Prompt for Agent
+                system_prompt = """You are a highly capable AI assistant named Broklin. Provide comprehensive, detailed answers to the user's questions. Do not restrict your length. 
+
+You have access to a Google Search tool. If the user asks about live information, current events, recent news, the weather, sports scores, or anything that requires the real-time internet, YOU MUST use the Google Search tool to find the answer.
+
+If background info is provided, prioritize answering using that background info in detail.
 
 Current conversation:
 {history}
-Human: {input}
-Broklin:"""
+"""
                 
-                PROMPT = PromptTemplate(input_variables=["history", "input"], template=template)
+                from langchain_core.prompts import MessagesPlaceholder, ChatPromptTemplate
                 
-                self.memory = ConversationBufferMemory(ai_prefix="Broklin")
-                self.conversation = ConversationChain(
-                    prompt=PROMPT,
-                    llm=self.llm, 
-                    verbose=True, 
-                    memory=self.memory
-                )
+                self.prompt = ChatPromptTemplate.from_messages([
+                    ("system", system_prompt),
+                    MessagesPlaceholder(variable_name="history"),
+                    ("human", "{input}"),
+                    MessagesPlaceholder(variable_name="agent_scratchpad"),
+                ])
+                
+                # Keep memory buffer
+                self.memory = ConversationBufferMemory(memory_key="history", return_messages=True)
+                
+                # Tools will be bound during ask_gemini when Pinecone is ready
                 
                 self.gemini_configured = True
                 self.gemini_init_error = None
@@ -85,6 +94,34 @@ Broklin:"""
         if self._openai_key and self._openai_key != "YOUR-OPENAI-KEY-HERE":
             self.openai_configured = True
 
+    def _get_agent_executor(self):
+        from langchain.agents import create_tool_calling_agent, AgentExecutor
+        from langchain.tools import Tool
+        
+        tools = []
+        
+        # 1. Google Search Tool
+        if self._google_search_api_key and self._google_cse_id:
+            try:
+                from langchain_community.utilities import GoogleSearchAPIWrapper
+                search = GoogleSearchAPIWrapper(
+                    google_api_key=self._google_search_api_key, 
+                    google_cse_id=self._google_cse_id
+                )
+                tools.append(
+                    Tool(
+                        name="google_search",
+                        description="Search Google for recent results, live news, current events, and weather.",
+                        func=search.run,
+                    )
+                )
+            except Exception as e:
+                print(f"Failed to init Google Search Tool: {e}")
+
+        # Create Agent
+        agent = create_tool_calling_agent(self.llm, tools, self.prompt)
+        return AgentExecutor(agent=agent, tools=tools, memory=self.memory, verbose=True)
+
     def ask_gemini(self, prompt, image=None):
         if not self.gemini_configured:
             return f"Gemini configuration failed: {getattr(self, 'gemini_init_error', 'Unknown Error')}"
@@ -95,6 +132,7 @@ Broklin:"""
                 return response.text.replace("*", "")
             else:
                 # Lazy Load Vector Store for RAG if Pinecone is configured
+                augmented_prompt = prompt
                 if self.vectorstore is None and self._pinecone_key and PineconeVectorStore:
                     print("Lazy Initializing Pinecone Vector Store...")
                     embeddings = GoogleGenerativeAIEmbeddings(
@@ -108,16 +146,16 @@ Broklin:"""
                     )
 
                 # RAG: Retrieve context from Vector DB if available
-                augmented_prompt = prompt
                 if self.vectorstore:
                     docs = self.vectorstore.similarity_search(prompt, k=3)
                     if docs:
                         context = "\n\n".join([doc.page_content for doc in docs])
                         augmented_prompt = f"Background Information (Use this to answer the user if relevant):\n{context}\n\nUser Question: {prompt}"
                 
-                # Use LangChain for text (Preserves Memory)
-                response = self.conversation.predict(input=augmented_prompt)
-                return response.replace("*", "")
+                # Execute Agent
+                agent_executor = self._get_agent_executor()
+                response = agent_executor.invoke({"input": augmented_prompt})
+                return response["output"].replace("*", "")
         except Exception as e:
             return f"Gemini Error: {e}"
 
